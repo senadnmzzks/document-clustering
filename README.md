@@ -5,7 +5,7 @@ A small app that groups .txt files by their meaning. Documents about the same to
 ## How it works
 
 1. Each document is turned into vectors with an embedding model.
-2. Documents are compared by their vector values; if they're above the threshold, they're considered similar.
+2. AgglomerativeClustering compares the vectors by cosine distance and groups documents together if their similarity is above the threshold.
 3. The Qwen model then names the groups and writes a summary with how many groups there are and their details.
 
 ## Setup
