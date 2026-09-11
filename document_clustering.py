@@ -1,5 +1,6 @@
 import streamlit as st
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer
+from sklearn.cluster import AgglomerativeClustering
 import requests
 
 EMBED_MODEL = "all-MiniLM-L6-v2"
@@ -47,27 +48,20 @@ if st.button("Cluster"):
 
     # The model runs here and creates the vectors of the documents
     with st.spinner("Analyzing documents..."):
-        embeddings = model.encode(documents, convert_to_tensor=True)
+        embeddings = model.encode(documents)
+        # Uses AgglomerativeClustering, compares by cosine distance and groups the texts that are close to each other
+        clustering = AgglomerativeClustering(
+                    n_clusters=None,
+                    distance_threshold=1 - threshold,
+                    metric="cosine",
+                    linkage="average",
+        )
+        labels = clustering.fit_predict(embeddings)
 
-        parent = list(range(len(filenames)))
-        # find: returns which group a document belongs to  
-        def find(x):
-            while parent[x] != x:
-                x = parent[x]
-            return x
-        # union: merges two documents into the same group
-        def union(a, b):
-            parent[find(a)] = find(b)
-        # Groups together documents whose similarity score is above the threshold
-        for i in range(len(filenames)):
-            for j in range(i + 1, len(filenames)):
-                similarity = float(util.cos_sim(embeddings[i], embeddings[j]))
-                if similarity >= threshold:
-                    union(i, j)
         # Collects documents that belong to the same group into one list
         cluster_map = {}
-        for i in range(len(filenames)):
-            cluster_map.setdefault(find(i), []).append(i)
+        for i, label in enumerate(labels):
+            cluster_map.setdefault(label, []).append(i)
         clusters = list(cluster_map.values())
     # Shows the number of clusters found on screen
     st.subheader(f"{len(clusters)} clusters found")
